@@ -1,0 +1,23 @@
+{
+  "name": "redux-probe",
+  "version": "1.0.0",
+  "description": "A new way to test redux apps",
+  "main": "index.js",
+  "scripts": {
+    "test": "babel-node test.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+ssh://git@github.com/mpj/redux-probe.git"
+  },
+  "author": "Mattias Petter Johansson <mpj@mpj.me>",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/mpj/redux-probe/issues"
+  },
+  "homepage": "https://github.com/mpj/redux-probe#readme",
+  "devDependencies": {
+    "babel": "^6.0.15",
+    "tape": "^4.2.2"
+  }
+}
