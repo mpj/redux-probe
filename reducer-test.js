@@ -24,7 +24,7 @@ function deepFindFirstDiff(pattern, actual, path = []) {
   const keys = R.keys(pattern)
   for (var i=0; i<keys.length; i++) {
     const key = keys[i];
-    if (R.is(Object, pattern[key])) {
+    if (R.is(Object, pattern[key]) && R.is(Object, actual[key])) {
       const innerDiff = deepFindFirstDiff(pattern[key], actual[key], path.concat([key]))
       if(innerDiff) return innerDiff;
     } else if (pattern[key] !== actual[key])
