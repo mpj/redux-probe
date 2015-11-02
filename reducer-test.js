@@ -20,13 +20,16 @@ export default function reducerTest(reducer, suites) {
 
 const mapObj = R.flip(R.map)
 
-function deepFindFirstDiff(pattern, actual) {
+function deepFindFirstDiff(pattern, actual, path = []) {
   const keys = R.keys(pattern)
   for (var i=0; i<keys.length; i++) {
     const key = keys[i];
-    if (pattern[key] !== actual[key])
+    if (R.is(Object, pattern[key])) {
+      const innerDiff = deepFindFirstDiff(pattern[key], actual[key], path.concat([key]))
+      if(innerDiff) return innerDiff;
+    } else if (pattern[key] !== actual[key])
       return {
-        key,
+        key: path.concat([key]).join('.'),
         actual: actual[key],
         expected: pattern[key]
       }
