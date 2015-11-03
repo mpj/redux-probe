@@ -10,13 +10,40 @@ export default function findMismatchDeep(expected, actual, path = []) {
     const pairsExpected = R.toPairs(expected)
     for (var i = 0; i < pairsExpected.length; i++) {
       const [expectedKey, expectedPatternForKey] = pairsExpected[i]
+
       const mismatch = findMismatchDeep(
-        actual[expectedKey],
         expectedPatternForKey,
+        actual[expectedKey],
         path.concat([expectedKey])
       )
+
       if (mismatch) return mismatch;
     }
+  } else if (isBothArrays) {
+    // check that all array patterns match actual
+    for (var i = 0; i < expected.length; i++) {
+      let matched = false;
+      let firstMismatch = null;
+      for (var j = 0; j < actual.length; j++) {
+        const mismatch = findMismatchDeep(
+          expected[i],
+          actual[j],
+          path.concat([i]))
+
+        if (!mismatch) {
+          matched = true;
+          break;
+        }
+      }
+      if (!matched) {
+        return {
+          path,
+          expected: expected,
+          actual
+        }
+      }
+    }
+
   } else if (expected !== actual) {
     return {
       path,
