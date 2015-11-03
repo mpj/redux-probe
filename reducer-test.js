@@ -1,13 +1,23 @@
 import R from 'ramda'
 export default function reducerTest(reducer, suites) {
+
+
+  const hasFocusedTest =
+    R.any(suite => R.any(test => test.focus)(R.values(suite)))
+  const isFocused = hasFocusedTest(R.values(suites))
+
   return mapObj(suites, suite => {
     return mapObj(suite, test => {
-      // TODO check for givenAction
+      if (isFocused && !test.focus) {
+        return {
+          blur: true
+        }
+      }
       const actualState = reducer(test.givenState, test.givenAction)
-
       const firstDiff = deepFindFirstDiff(test.expectedState, actualState)
 
       return {
+        focus: isFocused,
         success: !firstDiff,
         failure: !!firstDiff,
         actualState,
