@@ -1,5 +1,6 @@
 import test from 'tape'
 import R from 'ramda'
+
 import reducerTest from './reducer-test'
 
 test('basic', (t) => {
@@ -63,7 +64,7 @@ test('basic failure', (t) => {
   t.equal(testResult.actualState.value, 12 + bug);
   t.notOk(testResult.success);
   t.ok(testResult.failure);
-  t.equal(testResult.diff.key, 'value');
+  t.equal(testResult.diff.path, 'value');
   t.equal(testResult.diff.actual, 12 + bug);
   t.equal(testResult.diff.expected, 12);
   t.end();
@@ -106,7 +107,7 @@ test('recursive diff', (t) => {
   const testResult = result['my fine suite']['a test']
   t.notOk(testResult.success);
   t.ok(testResult.failure);
-  t.equal(testResult.diff.key, 'outer.inner.value');
+  t.equal(testResult.diff.path, 'outer.inner.value');
   t.equal(testResult.diff.actual, 12 + bug);
   t.equal(testResult.diff.expected, 12);
   t.end();
@@ -152,9 +153,85 @@ test('recursive diff (missing tree)', (t) => {
       otherprop: 1
     }
   });
-  t.equal(testResult.diff.key, 'outer.inner');
+  t.equal(testResult.diff.path, 'outer.inner');
   t.equal(testResult.diff.actual, undefined);
   t.deepEqual(testResult.diff.expected, { value: 12 });
+  t.end();
+})
+
+
+const addCatTest = {
+  'my fine suite': {
+    'a test': {
+      givenState: {
+        cats: [ 'waffles', 'fluffykins' ]
+      },
+      givenAction: {
+        type: 'addCat',
+        name: 'skogsturken'
+      },
+      expectedState: {
+        cats: [ 'skogsturken' ]
+      },
+    }
+  }
+}
+
+test('arrays (correct reducer)', (t) => {
+  const correctReducer = (state, action) => {
+    return {
+      cats: state.cats.concat([action.name])
+    }
+  }
+  const suitesResult = reducerTest(correctReducer, addCatTest);
+  const testResult = suitesResult['my fine suite']['a test'];
+  t.ok(testResult.success);
+  t.end();
+})
+
+test.only('arrays (buggy reducer)', (t) => {
+  const buggyReducer = (state, action) => {
+    return {
+      cats: state.cats // I won't con-cat!
+    }
+  }
+  const suitesResult = reducerTest(buggyReducer, addCatTest);
+  const testResult = suitesResult['my fine suite']['a test'];
+  t.ok(testResult.failure);
+  t.deepEqual(testResult.diff.path, ['cats']);
+  t.deepEqual(testResult.diff.actual, [ 'waffles', 'fluffykins' ])
+  t.deepEqual(testResult.diff.expected, [ 'skogsturken' ])
+  t.end();
+})
+
+test('arrays (matching properties, correct reducer)', (t) => {
+  const propReducer = (state, action) => {
+    return {
+      cats: state.cats.concat([action.cat])
+    }
+  }
+  const propTest = {
+    'my fine suite': {
+      'a test': {
+        givenState: {
+          cats: [
+            { name: 'waffles', otherprop: 456 },
+            { name: 'fluffykins', otherprop: 789 }
+          ]
+        },
+        givenAction: {
+          type: 'addCat',
+          cat: { name: 'skogsturken', otherprop: 123 }
+        },
+        expectedState: {
+          cats: [ { name: 'skogsturken' } ]
+        },
+      }
+    }
+  }
+  const suitesResult = reducerTest(propReducer, propTest);
+  const testResult = suitesResult['my fine suite']['a test'];
+  t.ok(testResult.success);
   t.end();
 })
 
@@ -197,9 +274,15 @@ test('focus', (t) => {
 
 })
 
+// TODO: arrays
+// TODO: objects in arrays
 // TODO: skip test
 // TODO: missing givenAction
 // TODO: missing expectedState
 // TODO: debug/copy thing
 // TODO: actionCreatorTest
 // TODO: exceptions
+// TODO: node runner
+// TODO: auto-locate unneccessary properties for test (just remove props and run many times)
+// TODO: copy output
+// TODO: invalid properties on tests (misseplling of givenState etc)

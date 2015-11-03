@@ -1,6 +1,9 @@
 import R from 'ramda'
-export default function reducerTest(reducer, suites) {
+import _ from 'lodash'
+import changesets from 'diff-json'
+import findMismatchDeep from './find-mismatch-deep'
 
+export default function reducerTest(reducer, suites) {
 
   const hasFocusedTest =
     R.any(suite => R.any(test => test.focus)(R.values(suite)))
@@ -14,7 +17,7 @@ export default function reducerTest(reducer, suites) {
         }
       }
       const actualState = reducer(test.givenState, test.givenAction)
-      const firstDiff = deepFindFirstDiff(test.expectedState, actualState)
+      const firstDiff = findMismatchDeep(test.expectedState, actualState)
 
       return {
         focus: isFocused,
@@ -30,19 +33,44 @@ export default function reducerTest(reducer, suites) {
 
 const mapObj = R.flip(R.map)
 
+/*
+
 function deepFindFirstDiff(pattern, actual, path = []) {
-  const keys = R.keys(pattern)
-  for (var i=0; i<keys.length; i++) {
-    const key = keys[i];
-    if (R.is(Object, pattern[key]) && R.is(Object, actual[key])) {
-      const innerDiff = deepFindFirstDiff(pattern[key], actual[key], path.concat([key]))
-      if(innerDiff) return innerDiff;
-    } else if (pattern[key] !== actual[key])
+
+  if (_.isPlainObject(pattern) && _.isPlainObject(actual)) {
+    R.toPairs(pattern).forEach(([key, value]) => {
+      // every pattern prop should exist among actuals
+      const existsAmongActualProperties =
+    })
+    const innerDiff = deepFindFirstDiff(pattern, actual, path.concat([key]))
+    if(innerDiff) return innerDiff;
+  } else if (_.isArray(pattern) && _.isArray(actual)) {
+    const patterns = pattern;
+    const actuals = actual;
+    const unmatchedPattern =
+      patterns.find((pattern) => {
+        const matchesPattern = (actual) => {
+          console.log('dffd', pattern, actual, deepFindFirstDiff(pattern, actual))
+          return deepFindFirstDiff(pattern, actual)
+        }
+
+        const matchesSomeActual = actuals.find(matchesPattern)
+        return !matchesSomeActual;
+      })
+
+    console.log('unmatchedPattern',unmatchedPattern, patterns,actuals)
+    if (unmatchedPattern) {
       return {
         key: path.concat([key]).join('.'),
-        actual: actual[key],
-        expected: pattern[key]
-      }
+        actual: actual,
+        expected: pattern
+      };
+    }
+  } else if (pattern !== actual)
+    return {
+      key: path.concat([key]).join('.'),
+      actual: actual,
+      expected: pattern
+    }
   }
-  return null;
-}
+}*/
