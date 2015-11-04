@@ -189,7 +189,7 @@ test('arrays (correct reducer)', (t) => {
   t.end();
 })
 
-test.only('arrays (buggy reducer)', (t) => {
+test('arrays (buggy reducer)', (t) => {
   const buggyReducer = (state, action) => {
     return {
       cats: state.cats // I won't con-cat!
