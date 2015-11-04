@@ -7,23 +7,29 @@ export default function reducerTest(reducer, suites) {
 
   const hasFocusedTest =
     R.any(suite => R.any(test => test.focus)(R.values(suite)))
-  const isFocused = hasFocusedTest(R.values(suites))
+  const runHasFocusedTest = hasFocusedTest(R.values(suites))
 
   return mapObj(suites, suite => {
     return mapObj(suite, test => {
-      if (!test.expectedState) {
-        throw new Error('expectedState missing from "my test"')
+      if (!test.expectedState && !test.focus) {
+        throw new Error('expectedState missing from "my test". Maybe you misspelled it? Or, if you want to just check the state output without verifying, set focus: true.')
       }
-      if (isFocused && !test.focus) {
+      if (runHasFocusedTest && !test.focus) {
         return {
           blur: true
         }
       }
       const actualState = reducer(test.givenState, test.givenAction)
-      const firstDiff = findMismatchDeep(test.expectedState, actualState)
+
+      const firstDiff = !!test.expectedState
+        ? findMismatchDeep(test.expectedState, actualState)
+        : null;
+
+
 
       return {
-        focus: isFocused,
+        probe: !test.expectedState && test.focus,
+        focus: test.focus,
         success: !firstDiff,
         failure: !!firstDiff,
         actualState,

@@ -287,12 +287,27 @@ test('missing expectedState', t => {
       }
     })
   } catch(e) {
-    t.equal(e.message, 'expectedState missing from "my test"')
+    t.equal(e.message, 'expectedState missing from "my test". Maybe you misspelled it? Or, if you want to just check the state output without verifying, set focus: true.')
     t.end()
     return
   }
   t.fail('did not throw exception')
 
+})
+
+test('focus will run without expectedState', t => {
+  const reducer = _ => ({ someprop: 123 })
+  const testResult = reducerTest(reducer, {
+    'mysuite': {
+      'mytest': {
+        focus: true,
+        givenAction: { type: 'lol' }
+      }
+    }
+  })
+  t.equal(testResult['mysuite']['mytest'].probe, true)
+  t.equal(testResult['mysuite']['mytest'].actualState.someprop, 123)
+  t.end()
 })
 
 // TODO: missing expectedState
