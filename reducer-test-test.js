@@ -64,7 +64,7 @@ test('basic failure', (t) => {
   t.equal(testResult.actualState.value, 12 + bug);
   t.notOk(testResult.success);
   t.ok(testResult.failure);
-  t.equal(testResult.diff.path, 'value');
+  t.deepEqual(testResult.diff.path, ['value']);
   t.equal(testResult.diff.actual, 12 + bug);
   t.equal(testResult.diff.expected, 12);
   t.end();
@@ -107,7 +107,7 @@ test('recursive diff', (t) => {
   const testResult = result['my fine suite']['a test']
   t.notOk(testResult.success);
   t.ok(testResult.failure);
-  t.equal(testResult.diff.path, 'outer.inner.value');
+  t.deepEqual(testResult.diff.path, ['outer', 'inner', 'value' ]);
   t.equal(testResult.diff.actual, 12 + bug);
   t.equal(testResult.diff.expected, 12);
   t.end();
@@ -153,7 +153,7 @@ test('recursive diff (missing tree)', (t) => {
       otherprop: 1
     }
   });
-  t.equal(testResult.diff.path, 'outer.inner');
+  t.deepEqual(testResult.diff.path, ['outer','inner']);
   t.equal(testResult.diff.actual, undefined);
   t.deepEqual(testResult.diff.expected, { value: 12 });
   t.end();
@@ -271,18 +271,43 @@ test('focus', (t) => {
   t.deepEqual(testResult['my other suite']['actual test'].actualState, {
     hello: 'world'
   });
+  t.end()
+})
+
+test('missing expectedState', t => {
+  const reducer = _ => {}
+
+  try {
+    reducerTest(reducer, {
+      'my suite': {
+        'a test': {
+          givenAction: { type: 'lul' },
+          expectState: { someprop: 1 } // misspelling! expectedState != expectState
+        }
+      }
+    })
+  } catch(e) {
+    t.equal(e.message, 'expectedState missing from "my test"')
+    t.end()
+    return
+  }
+  t.fail('did not throw exception')
 
 })
 
-// TODO: arrays
-// TODO: objects in arrays
+// TODO: missing expectedState
+// TODO: allow not having expectedState when focusing
+
 // TODO: skip test
 // TODO: missing givenAction
-// TODO: missing expectedState
+
+// TODO: hint about exception in GUI in case console isn't open
+
 // TODO: debug/copy thing
+
 // TODO: actionCreatorTest
 // TODO: exceptions
 // TODO: node runner
 // TODO: auto-locate unneccessary properties for test (just remove props and run many times)
 // TODO: copy output
-// TODO: invalid properties on tests (misseplling of givenState etc)
+// TODO: invalid properties on tests (misseplling of givenState etc)''
