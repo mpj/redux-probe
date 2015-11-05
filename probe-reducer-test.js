@@ -1,7 +1,6 @@
 import test from 'tape'
-import R from 'ramda'
 
-import {reducerTest, probe, focus} from './reducer-test'
+import {reducerTest, probe, focus} from './probe'
 
 test('basic', (t) => {
   const reducer = (state, action) => {
