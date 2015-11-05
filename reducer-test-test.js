@@ -1,7 +1,7 @@
 import test from 'tape'
 import R from 'ramda'
 
-import reducerTest from './reducer-test'
+import {reducerTest, probe, focus} from './reducer-test'
 
 test('basic', (t) => {
   const reducer = (state, action) => {
@@ -11,10 +11,9 @@ test('basic', (t) => {
       }
     }
   }
-
-  const result = reducerTest(reducer, {
+  const result = probe({
     'basic group': {
-      'basic test': {
+      'basic test': reducerTest(reducer, {
         givenState: {
           value: 8
         },
@@ -25,7 +24,7 @@ test('basic', (t) => {
         expectedState: {
           value: 12
         }
-      }
+      })
     }
   })
   const testResult = result['basic group']['basic test']
@@ -44,9 +43,9 @@ test('basic failure', (t) => {
     }
   }
 
-  const result = reducerTest(reducer, {
+  const result = probe({
     'my fine suite': {
-      'a test': {
+      'a test': reducerTest(reducer, {
         givenState: {
           value: 8
         },
@@ -57,7 +56,7 @@ test('basic failure', (t) => {
         expectedState: {
           value: 12
         }
-      }
+      })
     }
   })
   const testResult = result['my fine suite']['a test']
@@ -84,9 +83,9 @@ test('recursive diff', (t) => {
     }
   }
 
-  const result = reducerTest(reducer, {
+  const result = probe({
     'my fine suite': {
-      'a test': {
+      'a test': reducerTest(reducer, {
         givenState: {
           value: 8
         },
@@ -101,7 +100,7 @@ test('recursive diff', (t) => {
             }
           }
         }
-      }
+      })
     }
   })
   const testResult = result['my fine suite']['a test']
@@ -125,9 +124,9 @@ test('recursive diff (missing tree)', (t) => {
     }
   }
 
-  const result = reducerTest(reducer, {
+  const result = probe({
     'my fine suite': {
-      'a test': {
+      'a test': reducerTest(reducer, {
         givenState: {
           value: 8
         },
@@ -142,7 +141,7 @@ test('recursive diff (missing tree)', (t) => {
             }
           }
         }
-      }
+      })
     }
   })
   const testResult = result['my fine suite']['a test']
@@ -160,9 +159,9 @@ test('recursive diff (missing tree)', (t) => {
 })
 
 
-const addCatTest = {
+const addCatSuite = (reducer) => ({
   'my fine suite': {
-    'a test': {
+    'a test': reducerTest(reducer,{
       givenState: {
         cats: [ 'waffles', 'fluffykins' ]
       },
@@ -173,9 +172,9 @@ const addCatTest = {
       expectedState: {
         cats: [ 'skogsturken' ]
       },
-    }
+    })
   }
-}
+})
 
 test('arrays (correct reducer)', (t) => {
   const correctReducer = (state, action) => {
@@ -183,7 +182,7 @@ test('arrays (correct reducer)', (t) => {
       cats: state.cats.concat([action.name])
     }
   }
-  const suitesResult = reducerTest(correctReducer, addCatTest);
+  const suitesResult = probe(addCatSuite(correctReducer));
   const testResult = suitesResult['my fine suite']['a test'];
   t.ok(testResult.success);
   t.end();
@@ -195,7 +194,7 @@ test('arrays (buggy reducer)', (t) => {
       cats: state.cats // I won't con-cat!
     }
   }
-  const suitesResult = reducerTest(buggyReducer, addCatTest);
+  const suitesResult = probe(addCatSuite(buggyReducer));
   const testResult = suitesResult['my fine suite']['a test'];
   t.ok(testResult.failure);
   t.deepEqual(testResult.diff.path, ['cats']);
@@ -210,9 +209,9 @@ test('arrays (matching properties, correct reducer)', (t) => {
       cats: state.cats.concat([action.cat])
     }
   }
-  const propTest = {
+  const suitesResult = probe({
     'my fine suite': {
-      'a test': {
+      'a test': reducerTest(propReducer, {
         givenState: {
           cats: [
             { name: 'waffles', otherprop: 456 },
@@ -226,10 +225,9 @@ test('arrays (matching properties, correct reducer)', (t) => {
         expectedState: {
           cats: [ { name: 'skogsturken' } ]
         },
-      }
+      })
     }
-  }
-  const suitesResult = reducerTest(propReducer, propTest);
+  });
   const testResult = suitesResult['my fine suite']['a test'];
   t.ok(testResult.success);
   t.end();
@@ -245,23 +243,23 @@ test('focus', (t) => {
       hello: 'world'
     }
   }
-  const dummyTest = {
+  const dummyTest = reducerTest({
     givenAction: { type: 'dummy' },
     expectedState: {}
-  }
-  const testResult = reducerTest(reducer, {
+  })
+  const testResult = probe({
     'my suite': {
       'a skipped test': dummyTest,
     },
     'my other suite': {
       'another skipped test': dummyTest,
-      'actual test': {
+      'actual test': focus(reducerTest(reducer, {
         focus: true,
         givenAction: { type: 'notDummy' },
         expectedState: {
           hello: 'world'
         }
-      }
+      }))
     }
   });
   t.equal(testResult['my suite']['a skipped test'].blur, true);
@@ -278,16 +276,16 @@ test('missing expectedState', t => {
   const reducer = _ => {}
 
   try {
-    reducerTest(reducer, {
+    probe({
       'my suite': {
-        'a test': {
+        'a test': reducerTest(reducer, {
           givenAction: { type: 'lul' },
           expectState: { someprop: 1 } // misspelling! expectedState != expectState
-        }
+        })
       }
     })
   } catch(e) {
-    t.equal(e.message, 'expectedState missing from "my test". Maybe you misspelled it? Or, if you want to just check the state output without verifying, set focus: true.')
+    t.equal(e.message, 'expectedState missing from properties. Maybe you misspelled it? Or, if you want to just check the state output without verifying, set focus: true.')
     t.end()
     return
   }
@@ -297,12 +295,11 @@ test('missing expectedState', t => {
 
 test('focus will run without expectedState', t => {
   const reducer = _ => ({ someprop: 123 })
-  const testResult = reducerTest(reducer, {
+  const testResult = probe({
     'mysuite': {
-      'mytest': {
-        focus: true,
+      'mytest': focus(reducerTest(reducer, {
         givenAction: { type: 'lol' }
-      }
+      }))
     }
   })
   t.equal(testResult['mysuite']['mytest'].probe, true)
@@ -310,8 +307,6 @@ test('focus will run without expectedState', t => {
   t.end()
 })
 
-// TODO: missing expectedState
-// TODO: allow not having expectedState when focusing
 
 // TODO: skip test
 // TODO: missing givenAction

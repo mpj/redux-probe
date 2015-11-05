@@ -1,43 +1,56 @@
 import R from 'ramda'
-import _ from 'lodash'
 import changesets from 'diff-json'
 import findMismatchDeep from './find-mismatch-deep'
 
-export default function reducerTest(reducer, suites) {
+const mapObj = R.flip(R.map)
 
+export function probe(suite) {
   const hasFocusedTest =
-    R.any(suite => R.any(test => test.focus)(R.values(suite)))
-  const runHasFocusedTest = hasFocusedTest(R.values(suites))
+    R.any(group => R.any(test => test.___probeFocus)(R.values(group)))
+  const runHasFocusedTest = hasFocusedTest(R.values(suite))
 
-  return mapObj(suites, suite => {
-    return mapObj(suite, test => {
-      if (!test.expectedState && !test.focus) {
-        throw new Error('expectedState missing from "my test". Maybe you misspelled it? Or, if you want to just check the state output without verifying, set focus: true.')
-      }
-      if (runHasFocusedTest && !test.focus) {
+  return mapObj(suite, group => {
+    return mapObj(group, test => {
+      if (runHasFocusedTest && !test.___probeFocus) {
         return {
           blur: true
         }
       }
-      const actualState = reducer(test.givenState, test.givenAction)
-
-      const firstDiff = !!test.expectedState
-        ? findMismatchDeep(test.expectedState, actualState)
-        : null;
-
-
-
-      return {
-        probe: !test.expectedState && test.focus,
-        focus: test.focus,
-        success: !firstDiff,
-        failure: !!firstDiff,
-        actualState,
-        diff: firstDiff
+      const context = {
+        focus: test.___probeFocus
       }
-
+      return test(context)
     })
   })
 }
 
-const mapObj = R.flip(R.map)
+export function focus(test) {
+  test.___probeFocus = true
+  return test
+}
+
+export function reducerTest(reducer, opts) {
+
+  return function (context) {
+    if (!opts.expectedState && !context.focus) {
+      throw new Error('expectedState missing from properties. Maybe you misspelled it? Or, if you want to just check the state output without verifying, set focus: true.')
+    }
+    const actualState = reducer(opts.givenState, opts.givenAction)
+
+    const firstDiff = !!opts.expectedState
+      ? findMismatchDeep(opts.expectedState, actualState)
+      : null;
+
+    return {
+      probe: !opts.expectedState && context.focus,
+      focus: context.focus,
+      success: !firstDiff,
+      failure: !!firstDiff,
+      actualState,
+      diff: firstDiff
+    }
+  }
+
+
+
+}
