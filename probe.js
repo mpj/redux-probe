@@ -57,3 +57,18 @@ export function reducerTest(reducer, opts) {
   }
 
 }
+
+export function genericTest(callback) {
+  return function (context) {
+    return new Promise((resolve, reject) => {
+      callback(result => {
+        if (result !== false && result !== true)
+          throw new Error('Must provide boolean to result callback.');
+        resolve({
+          success: !!result,
+          failure: !result
+        })
+      })
+    })
+  }
+}
