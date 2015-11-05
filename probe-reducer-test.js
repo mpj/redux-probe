@@ -10,7 +10,7 @@ test('basic', (t) => {
       }
     }
   }
-  const result = probe({
+  probe({
     'basic group': {
       'basic test': reducerTest(reducer, {
         givenState: {
@@ -25,11 +25,13 @@ test('basic', (t) => {
         }
       })
     }
+  }).then((suiteResult) => {
+    const testResult = suiteResult['basic group']['basic test']
+    t.equal(testResult.actualState.value, 12);
+    t.ok(testResult.success);
+    t.end();
   })
-  const testResult = result['basic group']['basic test']
-  t.equal(testResult.actualState.value, 12);
-  t.ok(testResult.success);
-  t.end();
+
 });
 
 test('basic failure', (t) => {
@@ -42,7 +44,7 @@ test('basic failure', (t) => {
     }
   }
 
-  const result = probe({
+  probe({
     'my fine suite': {
       'a test': reducerTest(reducer, {
         givenState: {
@@ -57,15 +59,17 @@ test('basic failure', (t) => {
         }
       })
     }
+  }).then(result => {
+    const testResult = result['my fine suite']['a test']
+    t.equal(testResult.actualState.value, 12 + bug);
+    t.notOk(testResult.success);
+    t.ok(testResult.failure);
+    t.deepEqual(testResult.diff.path, ['value']);
+    t.equal(testResult.diff.actual, 12 + bug);
+    t.equal(testResult.diff.expected, 12);
+    t.end();
   })
-  const testResult = result['my fine suite']['a test']
-  t.equal(testResult.actualState.value, 12 + bug);
-  t.notOk(testResult.success);
-  t.ok(testResult.failure);
-  t.deepEqual(testResult.diff.path, ['value']);
-  t.equal(testResult.diff.actual, 12 + bug);
-  t.equal(testResult.diff.expected, 12);
-  t.end();
+
 })
 
 test('recursive diff', (t) => {
@@ -101,14 +105,16 @@ test('recursive diff', (t) => {
         }
       })
     }
+  }).then(result => {
+    const testResult = result['my fine suite']['a test']
+    t.notOk(testResult.success);
+    t.ok(testResult.failure);
+    t.deepEqual(testResult.diff.path, ['outer', 'inner', 'value' ]);
+    t.equal(testResult.diff.actual, 12 + bug);
+    t.equal(testResult.diff.expected, 12);
+    t.end();
   })
-  const testResult = result['my fine suite']['a test']
-  t.notOk(testResult.success);
-  t.ok(testResult.failure);
-  t.deepEqual(testResult.diff.path, ['outer', 'inner', 'value' ]);
-  t.equal(testResult.diff.actual, 12 + bug);
-  t.equal(testResult.diff.expected, 12);
-  t.end();
+
 })
 
 test('recursive diff (missing tree)', (t) => {
@@ -123,7 +129,7 @@ test('recursive diff (missing tree)', (t) => {
     }
   }
 
-  const result = probe({
+  probe({
     'my fine suite': {
       'a test': reducerTest(reducer, {
         givenState: {
@@ -142,19 +148,21 @@ test('recursive diff (missing tree)', (t) => {
         }
       })
     }
+  }).then(result => {
+    const testResult = result['my fine suite']['a test']
+    t.notOk(testResult.success);
+    t.ok(testResult.failure);
+    t.deepEqual(testResult.actualState, {
+      outer: {
+        otherprop: 1
+      }
+    });
+    t.deepEqual(testResult.diff.path, ['outer','inner']);
+    t.equal(testResult.diff.actual, undefined);
+    t.deepEqual(testResult.diff.expected, { value: 12 });
+    t.end();
   })
-  const testResult = result['my fine suite']['a test']
-  t.notOk(testResult.success);
-  t.ok(testResult.failure);
-  t.deepEqual(testResult.actualState, {
-    outer: {
-      otherprop: 1
-    }
-  });
-  t.deepEqual(testResult.diff.path, ['outer','inner']);
-  t.equal(testResult.diff.actual, undefined);
-  t.deepEqual(testResult.diff.expected, { value: 12 });
-  t.end();
+
 })
 
 
@@ -181,10 +189,12 @@ test('arrays (correct reducer)', (t) => {
       cats: state.cats.concat([action.name])
     }
   }
-  const suitesResult = probe(addCatSuite(correctReducer));
-  const testResult = suitesResult['my fine suite']['a test'];
-  t.ok(testResult.success);
-  t.end();
+  probe(addCatSuite(correctReducer)).then(suitesResult => {
+    const testResult = suitesResult['my fine suite']['a test'];
+    t.ok(testResult.success);
+    t.end();
+  })
+
 })
 
 test('arrays (buggy reducer)', (t) => {
@@ -193,13 +203,14 @@ test('arrays (buggy reducer)', (t) => {
       cats: state.cats // I won't con-cat!
     }
   }
-  const suitesResult = probe(addCatSuite(buggyReducer));
-  const testResult = suitesResult['my fine suite']['a test'];
-  t.ok(testResult.failure);
-  t.deepEqual(testResult.diff.path, ['cats']);
-  t.deepEqual(testResult.diff.actual, [ 'waffles', 'fluffykins' ])
-  t.deepEqual(testResult.diff.expected, [ 'skogsturken' ])
-  t.end();
+  probe(addCatSuite(buggyReducer)).then(suitesResult => {
+    const testResult = suitesResult['my fine suite']['a test'];
+    t.ok(testResult.failure);
+    t.deepEqual(testResult.diff.path, ['cats']);
+    t.deepEqual(testResult.diff.actual, [ 'waffles', 'fluffykins' ])
+    t.deepEqual(testResult.diff.expected, [ 'skogsturken' ])
+    t.end();
+  })
 })
 
 test('arrays (matching properties, correct reducer)', (t) => {
@@ -208,7 +219,7 @@ test('arrays (matching properties, correct reducer)', (t) => {
       cats: state.cats.concat([action.cat])
     }
   }
-  const suitesResult = probe({
+  probe({
     'my fine suite': {
       'a test': reducerTest(propReducer, {
         givenState: {
@@ -226,10 +237,12 @@ test('arrays (matching properties, correct reducer)', (t) => {
         },
       })
     }
-  });
-  const testResult = suitesResult['my fine suite']['a test'];
-  t.ok(testResult.success);
-  t.end();
+  }).then(suitesResult => {
+    const testResult = suitesResult['my fine suite']['a test'];
+    t.ok(testResult.success);
+    t.end();
+  })
+
 })
 
 test('focus', (t) => {
@@ -246,7 +259,7 @@ test('focus', (t) => {
     givenAction: { type: 'dummy' },
     expectedState: {}
   })
-  const testResult = probe({
+  probe({
     'my suite': {
       'a skipped test': dummyTest,
     },
@@ -260,15 +273,17 @@ test('focus', (t) => {
         }
       }))
     }
-  });
-  t.equal(testResult['my suite']['a skipped test'].blur, true);
-  t.equal(testResult['my other suite']['another skipped test'].blur, true);
-  t.equal(testResult['my other suite']['actual test'].focus, true);
-  t.equal(testResult['my other suite']['actual test'].success, true);
-  t.deepEqual(testResult['my other suite']['actual test'].actualState, {
-    hello: 'world'
-  });
-  t.end()
+  }).then(testResult => {
+    t.equal(testResult['my suite']['a skipped test'].blur, true);
+    t.equal(testResult['my other suite']['another skipped test'].blur, true);
+    t.equal(testResult['my other suite']['actual test'].focus, true);
+    t.equal(testResult['my other suite']['actual test'].success, true);
+    t.deepEqual(testResult['my other suite']['actual test'].actualState, {
+      hello: 'world'
+    });
+    t.end()
+  })
+
 })
 
 test('missing expectedState', t => {
@@ -300,10 +315,11 @@ test('focus will run without expectedState', t => {
         givenAction: { type: 'lol' }
       }))
     }
+  }).then(testResult => {
+    t.equal(testResult['mysuite']['mytest'].probe, true)
+    t.equal(testResult['mysuite']['mytest'].actualState.someprop, 123)
+    t.end()
   })
-  t.equal(testResult['mysuite']['mytest'].probe, true)
-  t.equal(testResult['mysuite']['mytest'].actualState.someprop, 123)
-  t.end()
 })
 
 

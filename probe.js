@@ -1,6 +1,7 @@
 import R from 'ramda'
 import changesets from 'diff-json'
 import findMismatchDeep from './find-mismatch-deep'
+import Promise from 'bluebird'
 
 const mapObj = R.flip(R.map)
 
@@ -9,19 +10,23 @@ export function probe(suite) {
     R.any(group => R.any(test => test.___probeFocus)(R.values(group)))
   const runHasFocusedTest = hasFocusedTest(R.values(suite))
 
-  return mapObj(suite, group => {
-    return mapObj(group, test => {
-      if (runHasFocusedTest && !test.___probeFocus) {
-        return {
-          blur: true
-        }
-      }
-      const context = {
-        focus: test.___probeFocus
-      }
-      return test(context)
-    })
-  })
+  return Promise.props(
+    mapObj(suite, (group) =>
+      Promise.props(
+        mapObj(group, (test) => {
+          if (runHasFocusedTest && !test.___probeFocus) {
+            return {
+              blur: true
+            }
+          }
+          const context = {
+            focus: test.___probeFocus
+          }
+          return test(context)
+        })
+      )
+    )
+  )
 }
 
 export function focus(test) {
@@ -41,16 +46,14 @@ export function reducerTest(reducer, opts) {
       ? findMismatchDeep(opts.expectedState, actualState)
       : null;
 
-    return {
+    return new Promise(resolve => resolve({
       probe: !opts.expectedState && context.focus,
       focus: context.focus,
       success: !firstDiff,
       failure: !!firstDiff,
       actualState,
       diff: firstDiff
-    }
+    }))
   }
-
-
 
 }
