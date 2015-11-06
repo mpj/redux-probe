@@ -46,13 +46,39 @@ export function reducerTest(reducer, opts) {
       ? findMismatchDeep(opts.expectedState, actualState)
       : null;
 
+    const violation = !firstDiff ? null : {
+      message: 'Actual state did not match expected state.',
+      sections: [
+        {
+          headerLabel: 'Offending property',
+          look: 'neutral',
+          value: firstDiff.path.join('.')
+        },
+        {
+          headerLabel: 'Actual',
+          look: 'bad',
+          value: firstDiff.actual,
+        },
+        {
+          headerLabel: 'Expected',
+          look: 'good',
+          value: firstDiff.expected,
+        },
+        {
+          headerLabel: 'Full, actual state',
+          look: 'neutral',
+          value: actualState
+        }
+      ]
+    }
+
     return new Promise(resolve => resolve({
       probe: !opts.expectedState && context.focus,
       focus: context.focus,
       success: !firstDiff,
       failure: !!firstDiff,
       actualState,
-      diff: firstDiff
+      violation
     }))
   }
 

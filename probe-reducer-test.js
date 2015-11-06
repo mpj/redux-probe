@@ -2,6 +2,7 @@ import test from 'tape'
 
 import {reducerTest, probe, focus} from './probe'
 
+
 test('basic', (t) => {
   const reducer = (state, action) => {
     if (action.type === 'add') {
@@ -39,7 +40,7 @@ test('basic failure', (t) => {
   const reducer = (state, action) => {
     if (action.type === 'add') {
       return {
-        value: state.value + action.value + bug
+        myValue: state.myValue + action.aValue + bug
       }
     }
   }
@@ -48,25 +49,50 @@ test('basic failure', (t) => {
     'my fine suite': {
       'a test': reducerTest(reducer, {
         givenState: {
-          value: 8
+          myValue: 8
         },
         givenAction: {
           type: 'add',
-          value: 4
+          aValue: 4
         },
         expectedState: {
-          value: 12
+          myValue: 12
         }
       })
     }
   }).then(result => {
     const testResult = result['my fine suite']['a test']
-    t.equal(testResult.actualState.value, 12 + bug);
+    t.equal(testResult.actualState.myValue, 12 + bug);
     t.notOk(testResult.success);
     t.ok(testResult.failure);
-    t.deepEqual(testResult.diff.path, ['value']);
-    t.equal(testResult.diff.actual, 12 + bug);
-    t.equal(testResult.diff.expected, 12);
+
+    t.deepLooseEqual(testResult.violation, {
+      "message": "Actual state did not match expected state.",
+      "sections": [
+        {
+          "headerLabel": "Offending property",
+          "look": "neutral",
+          "value": "myValue"
+        },
+        {
+          "headerLabel": "Actual",
+          "look": "bad",
+          "value": 678
+        },
+        {
+          "headerLabel": "Expected",
+          "look": "good",
+          "value": 12
+        },
+        {
+          "headerLabel": "Full, actual state",
+          "look": "neutral",
+          "value": {
+            "myValue": 678
+          }
+        }
+      ]
+    })
     t.end();
   })
 
@@ -109,9 +135,37 @@ test('recursive diff', (t) => {
     const testResult = result['my fine suite']['a test']
     t.notOk(testResult.success);
     t.ok(testResult.failure);
-    t.deepEqual(testResult.diff.path, ['outer', 'inner', 'value' ]);
-    t.equal(testResult.diff.actual, 12 + bug);
-    t.equal(testResult.diff.expected, 12);
+    t.deepEqual(testResult.violation, {
+      "message": "Actual state did not match expected state.",
+      "sections": [
+        {
+          "headerLabel": "Offending property",
+          "look": "neutral",
+          "value": "outer.inner.value"
+        },
+        {
+          "headerLabel": "Actual",
+          "look": "bad",
+          "value": 678
+        },
+        {
+          "headerLabel": "Expected",
+          "look": "good",
+          "value": 12
+        },
+        {
+          "headerLabel": "Full, actual state",
+          "look": "neutral",
+          "value": {
+            "outer": {
+              "inner": {
+                "value": 678
+              }
+            }
+          }
+        }
+      ]
+    });
     t.end();
   })
 
@@ -157,9 +211,38 @@ test('recursive diff (missing tree)', (t) => {
         otherprop: 1
       }
     });
-    t.deepEqual(testResult.diff.path, ['outer','inner']);
-    t.equal(testResult.diff.actual, undefined);
-    t.deepEqual(testResult.diff.expected, { value: 12 });
+
+    t.deepEqual(testResult.violation, {
+      "message": "Actual state did not match expected state.",
+      "sections": [
+        {
+          "headerLabel": "Offending property",
+          "look": "neutral",
+          "value": "outer.inner"
+        },
+        {
+          "headerLabel": "Actual",
+          "look": "bad",
+          "value": undefined,
+        },
+        {
+          "headerLabel": "Expected",
+          "look": "good",
+          "value": {
+            "value": 12
+          }
+        },
+        {
+          "headerLabel": "Full, actual state",
+          "look": "neutral",
+          "value": {
+            "outer": {
+              "otherprop": 1
+            }
+          }
+        }
+      ]
+    })
     t.end();
   })
 
@@ -205,10 +288,53 @@ test('arrays (buggy reducer)', (t) => {
   }
   probe(addCatSuite(buggyReducer)).then(suitesResult => {
     const testResult = suitesResult['my fine suite']['a test'];
-    t.ok(testResult.failure);
-    t.deepEqual(testResult.diff.path, ['cats']);
-    t.deepEqual(testResult.diff.actual, [ 'waffles', 'fluffykins' ])
-    t.deepEqual(testResult.diff.expected, [ 'skogsturken' ])
+    t.deepEqual(testResult, {
+      "probe": false,
+      "success": false,
+      "failure": true,
+      "focus": undefined,
+      "actualState": {
+        "cats": [
+          "waffles",
+          "fluffykins"
+        ]
+      },
+      "violation": {
+        "message": "Actual state did not match expected state.",
+        "sections": [
+          {
+            "headerLabel": "Offending property",
+            "look": "neutral",
+            "value": "cats"
+          },
+          {
+            "headerLabel": "Actual",
+            "look": "bad",
+            "value": [
+              "waffles",
+              "fluffykins"
+            ]
+          },
+          {
+            "headerLabel": "Expected",
+            "look": "good",
+            "value": [
+              "skogsturken"
+            ]
+          },
+          {
+            "headerLabel": "Full, actual state",
+            "look": "neutral",
+            "value": {
+              "cats": [
+                "waffles",
+                "fluffykins"
+              ]
+            }
+          }
+        ]
+      }
+    })
     t.end();
   })
 })
@@ -321,6 +447,8 @@ test('focus will run without expectedState', t => {
     t.end()
   })
 })
+
+
 
 
 // TODO: skip test
